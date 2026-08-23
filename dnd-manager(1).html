@@ -1,0 +1,2061 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D&D Campaign & Character Manager</title>
+    <style>
+        :root {
+            --bg-main: #FFF0F3;         /* Soft Light Pink */
+            --bg-card: #FEFAE0;         /* Soft Pastel Cream/Yellow */
+            --bg-card-alt: #FFE5EC;     /* Light Blush Pink */
+            --accent-pink: #FFB3C6;     /* Rosy Accent */
+            --accent-pink-dark: #FB6F92;/* Darker Pink Accent */
+            --accent-yellow: #FAEDCD;   /* Warm Light Yellow */
+            --accent-yellow-dark: #E9C46A; /* Golden Yellow Accent */
+            --border-pink: #FFC6FF;
+            --text-dark: #3D2C2E;       /* Soft Dark Brown/Mauve */
+            --text-muted: #7E6B71;
+            --slot-active: #FB6F92;     
+            --slot-empty: #E0D0D5;      
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        html, body {
+            width: 100%;
+            max-width: 100vw;
+            overflow-x: hidden; /* Prevents horizontal scrolling */
+            background-color: var(--bg-main);
+            color: var(--text-dark);
+            padding: 15px;
+            line-height: 1.5;
+            transition: background-color 0.4s ease;
+        }
+
+        /* Death Save Red Screen Mode */
+        body.dying-mode {
+            background-color: #FFB4B4 !important;
+            animation: pulse-red 1.2s infinite alternate;
+        }
+
+        @keyframes pulse-red {
+            0% { background-color: #FFCCCC; }
+            100% { background-color: #FF8888; }
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        /* Navigation Header */
+        header {
+            text-align: center;
+            padding: 15px;
+            background: var(--bg-card);
+            border: 2px solid var(--accent-pink);
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 10px rgba(251, 111, 146, 0.15);
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        header h1 {
+            color: var(--accent-pink-dark);
+            font-size: 1.6rem;
+            letter-spacing: 0.5px;
+        }
+
+        /* Views management */
+        .view {
+            display: none;
+            width: 100%;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        /* Cards & Containers */
+        .card {
+            background: var(--bg-card);
+            border: 2px solid var(--border-pink);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        .card h2 {
+            font-size: 1.1rem;
+            color: var(--accent-pink-dark);
+            border-bottom: 2px solid var(--accent-yellow-dark);
+            padding-bottom: 6px;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Buttons & Controls */
+        .btn {
+            background: var(--accent-pink-dark);
+            color: #FFFFFF;
+            border: none;
+            padding: 8px 14px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.1s ease;
+            white-space: nowrap;
+        }
+
+        .btn:hover {
+            background: #E0567B;
+            transform: translateY(-1px);
+        }
+
+        .btn-small {
+            padding: 4px 10px;
+            font-size: 0.8rem;
+        }
+
+        .btn-yellow {
+            background: var(--accent-yellow-dark);
+            color: var(--text-dark);
+        }
+
+        .btn-yellow:hover {
+            background: #D4AC3A;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--accent-pink-dark);
+            color: var(--accent-pink-dark);
+        }
+
+        .btn-outline:hover {
+            background: var(--accent-pink);
+            color: white;
+        }
+
+        /* Campaign Grid */
+        .campaign-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+            width: 100%;
+        }
+
+        .campaign-card {
+            background: var(--bg-card-alt);
+            border: 2px solid var(--accent-pink);
+            border-radius: 10px;
+            padding: 15px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            word-break: break-word;
+        }
+
+        .campaign-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--accent-pink-dark);
+        }
+
+        /* Tabs inside Campaign View */
+        .tab-bar {
+            display: flex;
+            flex-wrap: wrap; /* Prevents overflow */
+            gap: 8px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--accent-pink);
+            padding-bottom: 10px;
+            width: 100%;
+        }
+
+        .tab-btn {
+            background: var(--bg-card-alt);
+            border: 1.5px solid var(--accent-pink);
+            padding: 8px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            color: var(--text-dark);
+            font-size: 0.85rem;
+        }
+
+        .tab-btn.active {
+            background: var(--accent-pink-dark);
+            color: #FFFFFF;
+            border-color: var(--accent-pink-dark);
+        }
+
+        /* Responsive Character Sheet Layout */
+        .sheet-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 15px;
+            width: 100%;
+        }
+
+        .info-section {
+            grid-column: span 12;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            background: var(--bg-card-alt);
+        }
+
+        .field-group {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .field-group label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        input, select, textarea {
+            background: #FFFFFF;
+            border: 1.5px solid var(--accent-pink);
+            color: var(--text-dark);
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            outline: none;
+            max-width: 100%;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--accent-pink-dark);
+            box-shadow: 0 0 0 3px rgba(251, 111, 146, 0.2);
+        }
+
+        .stats-section {
+            grid-column: span 4;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .skills-section {
+            grid-column: span 4;
+            background: var(--bg-card-alt);
+        }
+
+        .combat-section {
+            grid-column: span 4;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(95px, 1fr));
+            gap: 10px;
+            align-content: start;
+        }
+
+        .attacks-section { grid-column: span 6; }
+        .spells-section { grid-column: span 6; }
+
+        @media (max-width: 1024px) {
+            .stats-section, .skills-section, .combat-section, .attacks-section, .spells-section { 
+                grid-column: span 12; 
+            }
+        }
+
+        .stat-box {
+            background: var(--bg-card-alt);
+            border: 1.5px solid var(--accent-pink);
+            border-radius: 10px;
+            text-align: center;
+            padding: 8px 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stat-box label {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--accent-pink-dark);
+            font-weight: bold;
+        }
+
+        /* Formatted for clean 2-digit number display */
+        .stat-box input {
+            width: 60px;
+            text-align: center;
+            font-size: 1.15rem;
+            font-weight: bold;
+            margin: 4px 0;
+            padding: 4px 2px;
+            -moz-appearance: textfield;
+        }
+
+        .stat-box input::-webkit-outer-spin-button,
+        .stat-box input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .stat-mod {
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: var(--text-dark);
+            background: var(--accent-yellow);
+            border: 1px solid var(--accent-yellow-dark);
+            border-radius: 6px;
+            padding: 2px 6px;
+            display: inline-block;
+        }
+
+        /* Skills Table */
+        .skill-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 4px 6px;
+            border-bottom: 1px dashed var(--accent-pink);
+            font-size: 0.85rem;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .skill-row:last-child {
+            border-bottom: none;
+        }
+
+        .skill-mod-badge {
+            background: #FFFFFF;
+            border: 1px solid var(--accent-pink-dark);
+            border-radius: 4px;
+            padding: 1px 6px;
+            font-weight: bold;
+            min-width: 32px;
+            text-align: center;
+            color: var(--accent-pink-dark);
+        }
+
+        .combat-badge {
+            background: #FFFFFF;
+            border: 1.5px solid var(--accent-yellow-dark);
+            border-radius: 10px;
+            text-align: center;
+            padding: 8px 4px;
+            word-break: break-word;
+        }
+
+        .combat-badge .value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--accent-pink-dark);
+        }
+
+        .combat-badge .title {
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        .attack-card {
+            background: #FFFFFF;
+            border: 1px solid var(--accent-pink);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .attack-info .name { font-weight: bold; color: var(--accent-pink-dark); }
+        .attack-info .type { font-size: 0.8rem; color: var(--text-muted); }
+
+        .attack-tag {
+            background: var(--accent-yellow);
+            color: var(--text-dark);
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            display: inline-block;
+        }
+
+        /* Spell Circle Trackers */
+        .slots-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 15px;
+            background: var(--bg-card-alt);
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .slot-level-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .circles-group { display: flex; gap: 6px; flex-wrap: wrap; }
+
+        .spell-circle {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background-color: var(--slot-active);
+            border: 2px solid var(--accent-pink-dark);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .spell-circle.expended {
+            background-color: var(--slot-empty);
+            border-color: #B0A0A5;
+            opacity: 0.6;
+        }
+
+        .spell-picker {
+            max-height: 180px;
+            overflow-y: auto;
+            background: #FFFFFF;
+            border: 1px solid var(--accent-pink);
+            border-radius: 6px;
+            padding: 6px;
+            margin-bottom: 12px;
+        }
+
+        .spell-option {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 4px 6px;
+            border-bottom: 1px dashed var(--border-pink);
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .prepared-item {
+            background: #FFFFFF;
+            border: 1px solid var(--accent-yellow-dark);
+            padding: 8px 10px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        /* Death Saves Red Screen Box */
+        .death-saves-box {
+            background: #FFF0F0;
+            border: 2px dashed #FB6F92;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+            text-align: center;
+            width: 100%;
+        }
+
+        .turn-item {
+            background: #FFFFFF;
+            border: 1.5px solid var(--accent-pink);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .npc-card, .enemy-card {
+            background: #FFFFFF;
+            border: 1.5px solid var(--accent-pink);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 12px;
+            word-break: break-word;
+        }
+
+        .npc-dialogue-box, .battle-action-log {
+            background: var(--bg-card-alt);
+            border-left: 4px solid var(--accent-pink-dark);
+            padding: 8px 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-size: 0.88rem;
+        }
+
+        .battle-log-entry {
+            font-size: 0.82rem;
+            padding: 4px 0;
+            border-bottom: 1px dashed var(--accent-pink);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>🐉 D&D Campaign & Character Manager</h1>
+        <button class="btn btn-yellow" id="nav-home-btn" onclick="showWelcomeView()" style="display:none;">🏠 Switch Campaign</button>
+    </header>
+
+    <!-- 1. WELCOME & CREATE CAMPAIGN SCREEN -->
+    <div id="view-welcome" class="view active">
+        <div class="card">
+            <h2>Start New Campaign</h2>
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 15px;">
+                <input type="text" id="new-campaign-name" placeholder="Enter Campaign Name (e.g. Lost Mine of Phandelver)...">
+                
+                <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: center; background: var(--bg-card-alt); padding: 10px; border-radius: 8px; border: 1px solid var(--accent-pink);">
+                    <strong>Select Game Mode:</strong>
+                    <label style="cursor: pointer;"><input type="radio" name="initial-camp-mode" value="Campaign Mode" checked> 📜 Campaign Mode</label>
+                    <label style="cursor: pointer;"><input type="radio" name="initial-camp-mode" value="Free Play Mode"> 🎲 Free Play Mode</label>
+                </div>
+
+                <button class="btn" onclick="createCampaign()">+ Create & Open Campaign</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Your Saved Campaigns</h2>
+            <div id="campaigns-list" class="campaign-grid">
+                <!-- Campaigns loaded dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. CAMPAIGN DASHBOARD SCREEN (WITH 5 TABS) -->
+    <div id="view-campaign" class="view">
+        <div class="card" style="background: var(--bg-card-alt);">
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px;">
+                <div>
+                    <h2 id="campaign-title" style="margin: 0; border: none;">Campaign Name</h2>
+                    <p id="campaign-mode-badge" style="font-size: 0.88rem; font-weight: bold; color: var(--accent-pink-dark);"></p>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <label><strong>Mode:</strong></label>
+                    <select id="campaign-mode-select" onchange="saveCampaignMode()">
+                        <option value="Campaign Mode">📜 Campaign Mode</option>
+                        <option value="Free Play Mode">🎲 Free Play Mode</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5 CAMPAIGN TABS -->
+        <div class="tab-bar">
+            <button class="tab-btn active" id="tab-btn-1" onclick="switchCampaignTab(1)">1. Character Roster (<span id="tab-char-count">0</span>/12)</button>
+            <button class="tab-btn" id="tab-btn-2" onclick="switchCampaignTab(2)">2. Select Players & Order</button>
+            <button class="tab-btn" id="tab-btn-3" onclick="switchCampaignTab(3)">3. Campaign Notes</button>
+            <button class="tab-btn" id="tab-btn-4" onclick="switchCampaignTab(4)">4. NPCs Encountered</button>
+            <button class="tab-btn" id="tab-btn-5" onclick="switchCampaignTab(5)">5. Enemies & Combat Logs</button>
+        </div>
+
+        <!-- TAB 1: ADD & MANAGE CHARACTERS -->
+        <div id="camp-tab-1" class="tab-content">
+            <div class="card">
+                <h2>
+                    <span>Characters Roster (<span id="char-count">0</span> / 12 Max)</span>
+                    <button class="btn btn-small" onclick="createNewCharacter()">+ Add New Character</button>
+                </h2>
+                <div id="character-roster-grid" class="campaign-grid">
+                    <!-- Character cards loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: SELECT PLAYERS & PLAY ORDER -->
+        <div id="camp-tab-2" class="tab-content" style="display: none;">
+            <div class="card">
+                <h2>Select Session Players & Initiative Turn Order</h2>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">
+                    Check participating characters for this session and assign play order:
+                </p>
+                <div id="player-selection-list">
+                    <!-- List of characters with checkboxes & order inputs -->
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: CAMPAIGN NOTES -->
+        <div id="camp-tab-3" class="tab-content" style="display: none;">
+            <div class="card">
+                <h2>Campaign Overview & Session Notes</h2>
+                <textarea id="campaign-notes" rows="10" placeholder="Enter campaign storyline, quest objectives, DM notes..." style="width: 100%;" onchange="saveCampaignNotes()"></textarea>
+            </div>
+        </div>
+
+        <!-- TAB 4: NPCS ENCOUNTERED (AUTO-INPUT / AI COMPATIBLE) -->
+        <div id="camp-tab-4" class="tab-content" style="display: none;">
+            <div class="card">
+                <h2>
+                    <span>NPCs Encountered So Far</span>
+                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                        <button class="btn btn-small btn-yellow" onclick="simulateAINpcInput()">🤖 Simulate AI Event</button>
+                        <button class="btn btn-small" onclick="promptAddNpc()">+ Add NPC</button>
+                    </div>
+                </h2>
+                <p style="font-size:0.82rem; color: var(--text-muted); margin-bottom: 12px;">
+                    Stores NPCs met, descriptions, and automatic dialogue/summary logs populated during gameplay by the AI/Python engine.
+                </p>
+                <div id="npc-list-container">
+                    <!-- NPC cards rendered here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 5: ENEMIES ENCOUNTERED & BATTLE DETAILS (AUTO-INPUT / AI COMPATIBLE) -->
+        <div id="camp-tab-5" class="tab-content" style="display: none;">
+            <div class="card">
+                <h2>
+                    <span>Enemies Encountered & Battle Details</span>
+                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                        <button class="btn btn-small btn-yellow" onclick="simulateAICombatLog()">⚔️ Log AI Turn</button>
+                        <button class="btn btn-small btn-yellow" onclick="simulateAILethalHit()">⚡ AI Lethal Hit (Auto Death Saves)</button>
+                        <button class="btn btn-small" onclick="promptAddEnemy()">+ Add Enemy</button>
+                    </div>
+                </h2>
+                <p style="font-size:0.82rem; color: var(--text-muted); margin-bottom: 12px;">
+                    Logs monsters fought, status, and turn-by-turn attack breakdowns (who attacked whom, damage, spells used).
+                </p>
+                <div id="enemy-list-container">
+                    <!-- Enemy combat cards rendered here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. DETAILED CHARACTER SHEET BUILDER VIEW -->
+    <div id="view-sheet" class="view">
+        <div style="margin-bottom: 15px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px;">
+            <button class="btn btn-outline" onclick="showCampaignView()">⬅️ Back to Campaign Dashboard</button>
+            <button class="btn" onclick="saveActiveCharacterSheet()">💾 Save Character</button>
+        </div>
+
+        <div class="sheet-grid">
+            <!-- Basic Information -->
+            <div class="card info-section">
+                <div class="field-group">
+                    <label for="char-name">Character Name</label>
+                    <input type="text" id="char-name" value="Lyra Starweaver">
+                </div>
+                <div class="field-group">
+                    <label for="char-class">Class</label>
+                    <select id="char-class" onchange="updateSheet()">
+                        <option value="Wizard">Wizard</option>
+                        <option value="Cleric">Cleric</option>
+                        <option value="Fighter">Fighter</option>
+                        <option value="Rogue">Rogue</option>
+                        <option value="Paladin">Paladin</option>
+                        <option value="Barbarian">Barbarian</option>
+                        <option value="Bard">Bard</option>
+                        <option value="Druid">Druid</option>
+                        <option value="Ranger">Ranger</option>
+                        <option value="Sorcerer">Sorcerer</option>
+                        <option value="Warlock">Warlock</option>
+                        <option value="Monk">Monk</option>
+                    </select>
+                </div>
+                <div class="field-group">
+                    <label for="char-level">Level</label>
+                    <input type="number" id="char-level" value="3" min="1" max="20" onchange="updateSheet()">
+                </div>
+                <div class="field-group">
+                    <label for="char-race">Race / Species</label>
+                    <select id="char-race" onchange="updateSheet()">
+                        <option value="Elf">Elf</option>
+                        <option value="Human">Human</option>
+                        <option value="Dwarf">Dwarf</option>
+                        <option value="Halfling">Halfling</option>
+                        <option value="Dragonborn">Dragonborn</option>
+                        <option value="Tiefling">Tiefling</option>
+                        <option value="Gnome">Gnome</option>
+                    </select>
+                </div>
+                <div class="field-group">
+                    <label for="char-bg">Background</label>
+                    <input type="text" id="char-bg" value="Sage">
+                </div>
+            </div>
+
+            <!-- Ability Scores (Two Digit Fit) -->
+            <div class="card stats-section">
+                <h2 style="grid-column: span 2;">Ability Scores</h2>
+                <div class="stat-box">
+                    <label>STR</label>
+                    <input type="number" id="score-str" value="10" min="0" max="30" onchange="updateSheet()">
+                    <div class="stat-mod" id="mod-str">+1</div>
+                </div>
+                <div class="stat-box">
+                    <label>DEX</label>
+                    <input type="number" id="score-dex" value="14" min="0" max="30" onchange="updateSheet()">
+                    <div class="stat-mod" id="mod-dex">+3</div>
+                </div>
+                <div class="stat-box">
+                    <label>CON</label>
+                    <input type="number" id="score-con" value="13" min="0" max="30" onchange="updateSheet()">
+                    <div class="stat-mod" id="mod-con">+2</div>
+                </div>
+                <div class="stat-box">
+                    <label>INT</label>
+                    <input type="number" id="score-int" value="16" min="0" max="30" onchange="updateSheet()">
+                    <div class="stat-mod" id="mod-int">+3</div>
+                </div>
+                <div class="stat-box">
+                    <label>WIS</label>
+                    <input type="number" id="score-wis" value="12" min="0" max="30" onchange="updateSheet()">
+                    <div class="stat-mod" id="mod-wis">+2</div>
+                </div>
+                <div class="stat-box">
+                    <label>CHA</label>
+                    <input type="number" id="score-cha" value="8" min="0" max="30" onchange="updateSheet()">
+                    <div class="stat-mod" id="mod-cha">+0</div>
+                </div>
+            </div>
+
+            <!-- Skills Checks Section -->
+            <div class="card skills-section">
+                <h2>Skill Checks & Proficiencies</h2>
+                <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px;">
+                    Choose governing Stat & check box for Proficiency (+Prof Bonus). Range: &lt;6 (-1), 6-9 (+0), 10-11 (+1), 12-13 (+2), 14+ (+3). Capped at max +3. Zero stats yield no proficiency.
+                </p>
+                <div id="skills-list">
+                    <!-- Standard SRD Skills generated dynamically -->
+                </div>
+            </div>
+
+            <!-- Combat & Health Section with Manual & Auto Death Save Trigger -->
+            <div class="card combat-section">
+                <h2 style="grid-column: span 12;">
+                    <span>Combat & Health Stats</span>
+                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                        <button class="btn btn-small btn-yellow" onclick="enterDeathSavesManually()">⚠️ Death Saves</button>
+                        <button class="btn btn-small btn-yellow" onclick="restLong()">🌙 Long Rest</button>
+                    </div>
+                </h2>
+                <div class="combat-badge">
+                    <div class="value" id="val-pb">+2</div>
+                    <div class="title">Proficiency</div>
+                </div>
+                <div class="combat-badge">
+                    <div class="value" id="val-ac">13</div>
+                    <div class="title">Armor Class</div>
+                </div>
+                <div class="combat-badge">
+                    <div class="value" id="val-init">+3</div>
+                    <div class="title">Initiative</div>
+                </div>
+                <div class="combat-badge">
+                    <div class="value" id="val-speed">30 ft</div>
+                    <div class="title">Speed</div>
+                </div>
+                <div class="combat-badge">
+                    <div class="value">
+                        <input type="number" id="hp-current" style="width: 45px; text-align: center;" value="17" onchange="checkHP()">
+                        / <span id="val-hp-max">17</span>
+                    </div>
+                    <div class="title">Current HP</div>
+                </div>
+                <div class="combat-badge">
+                    <div class="value" id="val-hd">3d6</div>
+                    <div class="title">Hit Dice</div>
+                </div>
+
+                <!-- Death Save Red Screen & Control -->
+                <div id="death-save-container" class="death-saves-box" style="grid-column: span 12; display: none;">
+                    <h3 style="color: var(--accent-pink-dark); margin-bottom: 5px;">⚠️ 0 HP - Unconscious! Death Saving Throws</h3>
+                    <div style="margin-top: 5px; display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap;">
+                        <span>Successes: <strong id="ds-successes">⚪⚪⚪</strong></span>
+                        <button class="btn btn-small" onclick="rollDeathSave(true)">+ Pass</button>
+                    </div>
+                    <div style="margin-top: 6px; display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap;">
+                        <span>Failures: <strong id="ds-failures">⚪⚪⚪</strong></span>
+                        <button class="btn btn-small btn-yellow" onclick="rollDeathSave(false)">+ Fail</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Class Attacks -->
+            <div class="card attacks-section">
+                <h2>Class Weapon Attacks & Actions</h2>
+                <div id="attacks-list"></div>
+            </div>
+
+            <!-- Spells Section -->
+            <div class="card spells-section">
+                <h2>Interactive Spellbook</h2>
+
+                <!-- Circle Spell Slot Trackers -->
+                <div id="spell-slots-wrapper">
+                    <p style="font-size: 0.85rem; font-weight: bold; margin-bottom: 6px; color: var(--accent-pink-dark);">
+                        Spell Slots (Click circle to expenditure/toggle slot):
+                    </p>
+                    <div class="slots-container" id="slots-container"></div>
+                </div>
+
+                <!-- Choose & Prepare Spells -->
+                <div>
+                    <p style="font-size: 0.85rem; font-weight: bold; margin-bottom: 6px; color: var(--accent-pink-dark);">
+                        Select / Prepare Spells for <span id="class-spell-name">Wizard</span>:
+                    </p>
+                    <div class="spell-picker" id="spell-picker-list"></div>
+                </div>
+
+                <!-- Prepared Spells Actions -->
+                <p style="font-size: 0.85rem; font-weight: bold; margin-bottom: 6px; color: var(--accent-pink-dark);">
+                    Prepared Spells Ready to Cast:
+                </p>
+                <div class="spell-prepared-list" id="prepared-spells-list"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- APP DATA & STORAGE ---
+    let campaigns = JSON.parse(localStorage.getItem('dnd_campaigns') || '[]');
+    let currentCampaignId = null;
+    let currentCharacterId = null;
+
+    // Standard SRD Skill Rules Mapping
+    const srdSkills = [
+        { name: "Acrobatics", stat: "dex" },
+        { name: "Animal Handling", stat: "wis" },
+        { name: "Arcana", stat: "int" },
+        { name: "Athletics", stat: "str" },
+        { name: "Deception", stat: "cha" },
+        { name: "History", stat: "int" },
+        { name: "Insight", stat: "wis" },
+        { name: "Intimidation", stat: "cha" },
+        { name: "Investigation", stat: "int" },
+        { name: "Medicine", stat: "wis" },
+        { name: "Nature", stat: "int" },
+        { name: "Perception", stat: "wis" },
+        { name: "Performance", stat: "cha" },
+        { name: "Persuasion", stat: "cha" },
+        { name: "Religion", stat: "int" },
+        { name: "Sleight of Hand", stat: "dex" },
+        { name: "Stealth", stat: "dex" },
+        { name: "Survival", stat: "wis" }
+    ];
+
+    // Database Reference Data
+    const classSpells = {
+        Wizard: [
+            { name: "Fire Bolt", level: 0, damage: "1d10 Fire", desc: "Cantrip ranged spell attack." },
+            { name: "Ray of Frost", level: 0, damage: "1d8 Cold", desc: "Slows target by 10ft." },
+            { name: "Magic Missile", level: 1, damage: "3x (1d4+1) Force", desc: "Automatically hits targets." },
+            { name: "Shield", level: 1, damage: "Utility", desc: "+5 AC reaction until next turn." },
+            { name: "Mage Armor", level: 1, damage: "Utility", desc: "Base AC becomes 13 + DEX." },
+            { name: "Misty Step", level: 2, damage: "Utility", desc: "Teleport up to 30ft as bonus action." },
+            { name: "Scorching Ray", level: 2, damage: "3x 2d6 Fire", desc: "Shoot 3 rays at targets." },
+            { name: "Fireball", level: 3, damage: "8d6 Fire", desc: "20ft radius dex save sphere." }
+        ],
+        Cleric: [
+            { name: "Sacred Flame", level: 0, damage: "1d8 Radiant", desc: "Ignores cover dex save." },
+            { name: "Guidance", level: 0, damage: "Utility", desc: "Add 1d4 to ability check." },
+            { name: "Cure Wounds", level: 1, damage: "1d8 + Mod Heal", desc: "Touch healing spell." },
+            { name: "Bless", level: 1, damage: "Utility", desc: "Add 1d4 to attack rolls and saves." },
+            { name: "Guiding Bolt", level: 1, damage: "4d6 Radiant", desc: "Grants advantage on next attack." },
+            { name: "Spiritual Weapon", level: 2, damage: "1d8 + Mod Force", desc: "Bonus action spectral attack." }
+        ],
+        Bard: [
+            { name: "Vicious Mockery", level: 0, damage: "1d4 Psychic", desc: "Disadvantage on next attack." },
+            { name: "Dissonant Whispers", level: 1, damage: "3d6 Psychic", desc: "Target must run away." },
+            { name: "Healing Word", level: 1, damage: "1d4 + Mod Heal", desc: "Bonus action ranged heal." }
+        ],
+        Druid: [
+            { name: "Thorn Whip", level: 0, damage: "1d6 Piercing", desc: "Pulls target 10ft closer." },
+            { name: "Entangle", level: 1, damage: "Utility", desc: "Restrains targets in 20ft square." },
+            { name: "Moonbeam", level: 2, damage: "2d10 Radiant", desc: "Beam of radiant light." }
+        ],
+        Paladin: [{ name: "Divine Favor", level: 1, damage: "1d4 Radiant", desc: "Add radiant damage to hits." }],
+        Ranger: [{ name: "Hunter's Mark", level: 1, damage: "1d6 Extra", desc: "Bonus damage on weapon hits." }],
+        Sorcerer: [{ name: "Fire Bolt", level: 0, damage: "1d10 Fire", desc: "Ranged cantrip attack." }],
+        Warlock: [{ name: "Eldritch Blast", level: 0, damage: "1d10 Force", desc: "Standard warlock beam attack." }]
+    };
+
+    const classAttacks = {
+        Fighter: [{ name: "Greatsword", stat: "str", damage: "2d6 Slashing", type: "Melee Weapon Attack" }],
+        Wizard: [{ name: "Fire Bolt Cantrip", stat: "int", damage: "1d10 Fire", type: "Ranged Spell Attack" }],
+        Rogue: [{ name: "Rapier (Sneak Attack)", stat: "dex", damage: "1d8 + 2d6 Piercing", type: "Finesse Attack" }],
+        Cleric: [{ name: "Mace", stat: "str", damage: "1d6 Bludgeoning", type: "Melee Weapon Attack" }],
+        Barbarian: [{ name: "Greataxe", stat: "str", damage: "1d12 Slashing", type: "Heavy Melee Attack" }],
+        Paladin: [{ name: "Longsword + Smite", stat: "str", damage: "1d8 + 2d8 Radiant", type: "Melee Smite Attack" }],
+        Bard: [{ name: "Rapier", stat: "dex", damage: "1d8 Piercing", type: "Finesse Attack" }],
+        Druid: [{ name: "Quarterstaff", stat: "wis", damage: "1d8 Bludgeoning", type: "Magic Weapon Attack" }],
+        Ranger: [{ name: "Longbow", stat: "dex", damage: "1d8 Piercing", type: "Ranged Attack" }],
+        Sorcerer: [{ name: "Light Crossbow", stat: "dex", damage: "1d8 Piercing", type: "Ranged Attack" }],
+        Warlock: [{ name: "Eldritch Blast", stat: "cha", damage: "1d10 Force", type: "Ranged Spell Attack" }],
+        Monk: [{ name: "Unarmed Strike", stat: "dex", damage: "1d6 Bludgeoning", type: "Martial Arts Action" }]
+    };
+
+    const classData = {
+        Wizard: { hd: 6, hpBase: 6, spellcaster: true },
+        Cleric: { hd: 8, hpBase: 8, spellcaster: true },
+        Fighter: { hd: 10, hpBase: 10, spellcaster: false },
+        Rogue: { hd: 8, hpBase: 8, spellcaster: false },
+        Paladin: { hd: 10, hpBase: 10, spellcaster: true },
+        Barbarian: { hd: 12, hpBase: 12, spellcaster: false },
+        Bard: { hd: 8, hpBase: 8, spellcaster: true },
+        Druid: { hd: 8, hpBase: 8, spellcaster: true },
+        Monk: { hd: 8, hpBase: 8, spellcaster: false },
+        Ranger: { hd: 10, hpBase: 10, spellcaster: true },
+        Sorcerer: { hd: 6, hpBase: 6, spellcaster: true },
+        Warlock: { hd: 8, hpBase: 8, spellcaster: true }
+    };
+
+    let spellSlotsState = { level1: { total: 0, expended: 0 }, level2: { total: 0, expended: 0 }, level3: { total: 0, expended: 0 } };
+    let preparedSpells = [];
+    let skillProficiencies = {};
+    let customSkillStats = {};
+    let deathSaveSuccesses = 0;
+    let deathSaveFailures = 0;
+
+    // Save Data
+    function saveAllData() {
+        localStorage.setItem('dnd_campaigns', JSON.stringify(campaigns));
+    }
+
+    // Navigation Views
+    function showView(viewId) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(viewId).classList.add('active');
+        document.getElementById('nav-home-btn').style.display = viewId === 'view-welcome' ? 'none' : 'inline-block';
+    }
+
+    function showWelcomeView() {
+        renderCampaignsList();
+        showView('view-welcome');
+    }
+
+    // --- CAMPAIGN MANAGEMENT & SETUP FLOW ---
+    function createCampaign() {
+        const nameInput = document.getElementById('new-campaign-name');
+        const name = nameInput.value.trim();
+        const selectedMode = document.querySelector('input[name="initial-camp-mode"]:checked').value;
+
+        if (!name) return alert("Please enter a campaign name!");
+
+        const newCamp = {
+            id: 'camp_' + Date.now(),
+            name: name,
+            mode: selectedMode,
+            notes: '',
+            characters: [],
+            npcs: [],
+            enemies: []
+        };
+
+        campaigns.push(newCamp);
+        saveAllData();
+        nameInput.value = '';
+        openCampaign(newCamp.id);
+    }
+
+    function renderCampaignsList() {
+        const container = document.getElementById('campaigns-list');
+        container.innerHTML = '';
+
+        if (campaigns.length === 0) {
+            container.innerHTML = '<p style="color:var(--text-muted);">No campaigns found. Create your first campaign above!</p>';
+            return;
+        }
+
+        campaigns.forEach(c => {
+            container.innerHTML += `
+                <div class="campaign-card" onclick="openCampaign('${c.id}')">
+                    <h3 style="color:var(--accent-pink-dark);">${c.name}</h3>
+                    <p style="font-size:0.85rem; color:var(--text-muted); margin-top:5px;">
+                        ⚙️ Mode: <strong>${c.mode}</strong><br>
+                        👥 Characters: <strong>${(c.characters || []).length} / 12</strong><br>
+                        💬 NPCs: <strong>${(c.npcs || []).length}</strong> | ⚔️ Encounters: <strong>${(c.enemies || []).length}</strong>
+                    </p>
+                </div>
+            `;
+        });
+    }
+
+    function openCampaign(campId) {
+        currentCampaignId = campId;
+        const camp = campaigns.find(c => c.id === campId);
+        if (!camp.npcs) camp.npcs = [];
+        if (!camp.enemies) camp.enemies = [];
+
+        document.getElementById('campaign-title').innerText = camp.name;
+        document.getElementById('campaign-mode-badge').innerText = `(${camp.mode})`;
+        document.getElementById('campaign-mode-select').value = camp.mode;
+        document.getElementById('campaign-notes').value = camp.notes || '';
+
+        renderCharacterRoster();
+        renderPlayerSelection();
+        renderNpcs();
+        renderEnemies();
+        switchCampaignTab(1);
+        showView('view-campaign');
+    }
+
+    function switchCampaignTab(tabIndex) {
+        [1, 2, 3, 4, 5].forEach(i => {
+            document.getElementById(`camp-tab-${i}`).style.display = i === tabIndex ? 'block' : 'none';
+            document.getElementById(`tab-btn-${i}`).classList.toggle('active', i === tabIndex);
+        });
+    }
+
+    function saveCampaignMode() {
+        const camp = campaigns.find(c => c.id === currentCampaignId);
+        if (camp) {
+            const newMode = document.getElementById('campaign-mode-select').value;
+            camp.mode = newMode;
+            document.getElementById('campaign-mode-badge').innerText = `(${newMode})`;
+            saveAllData();
+        }
+    }
+
+    function saveCampaignNotes() {
+        const camp = campaigns.find(c => c.id === currentCampaignId);
+        if (camp) {
+            camp.notes = document.getElementById('campaign-notes').value;
+            saveAllData();
+        }
+    }
+
+    // --- TAB 1: CHARACTER ROSTER (MAX 12) ---
+    function renderCharacterRoster() {
+        const camp = campaigns.find(c => c.id === currentCampaignId);
+        const container = document.getElementById('character-roster-grid');
+        const count = camp.characters.length;
+        document.getElementById('char-count').innerText = count;
+        document.getElementById('tab-char-count').innerText = count;
+        container.innerHTML = '';
+
+        camp.characters.forEach(char => {
+            container.innerHTML += `
+                <div class="campaign-card">
+                    <h3 style="color:var(--accent-pink-dark);">${char.name}</h3>
+                    <p style="font-size:0.85rem; color:var(--text-dark);">
+                        Level ${char.level} ${char.race} ${char.class}<br>
+                        HP: ${char.hpCurrent} / ${char.hpMax} ${char.hpCurrent <= 0 ? '⚠️ (Dying)' : ''}
+                    </p>
+                    <div style="margin-top:10px; display:flex; gap:6px;">
+                        <button class="btn btn-small" onclick="openCharacterSheet('${char.id}')">✏️ Edit / Open</button>
+                        <button class="btn btn-small btn-yellow" onclick="deleteCharacter('${char.id}')">🗑️ Delete</button>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    function createNewCharacter() {
+        const camp = campaigns.find(c => c.id === currentCampaignId);
+        if (camp.characters.length >= 12) {
+            return alert("Maximum limit of 12 characters reached for this campaign!");
+        }
+
+        const newChar = {
+            id: 'char_' + Date.now(),
+            name: 'Hero ' + (camp.characters.length + 1),
+            class: 'Wizard',
+            level: 1,
+            race: 'Human',
+            bg: 'Folk Hero',
+            scores: { str: 10, dex: 12, con: 12, int: 15, wis: 10, cha: 10 },
+            skillProfs: { "Arcana": true, "History": true },
+            customSkillStats: {},
+            hpCurrent: 7,
+            participating: true,
+            playOrder: camp.characters.length + 1,
+            preparedSpells: []
+        };
+
+        camp.characters.push(newChar);
+        saveAllData();
+        openCharacterSheet(newChar.id);
+    }
+
+    function deleteCharacter(charId) {
+        if (!confirm("Delete this character?")) return;
+        const camp = campaigns.find(c => c.id === currentCampaignId);
+        camp.characters = camp.characters.filter(ch => ch.id !== charId);
+        saveAllData();
+        renderCharacterRoster();
+        renderPlayerSelection();
+    }
+
+    // --- TAB 2: SELECT PLAYERS & ORDER ---
+    function renderPlayerSelection() {
+        const camp = campaigns.find(c => c.id === currentCampaignId);
+        const container = document.getElementById('player-selection-list');
+        container.innerHTML = '';
+
+        if (camp.characters.length === 0) {
+            container.innerHTML = '<p style="color:var(--text-muted);">No characters created yet.</p>';
+            return;
+        }
+
+        camp.characters.forEach(char => {
+            container.innerHTML += `
+                <div class="turn-item">
+                    <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                        <input type="checkbox" ${char.participating ? 'checked' : ''} onchange="togglePlayerParticipation('${char.id}')">
+                        <strong>${char.name}</strong> (${char.race} ${char.class})
+                    </label>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-size:0.8rem; color:var(--text-muted);">Play Order / Initiative:</span>
+                        <input type="number" value="${char.playOrder || 1}" min="1" style="width:55px; text-align:center;" onchange="updatePlayerOrder('${char.id}', this.value)">
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    function togglePlayerParticipation(charId) {
+        const camp = campaigns.find(c => c.id === currentCampaignId);
+        const char = camp.characters.find(c => c.id === charId);
+        if (char) {
+            char.participating = !char.participating;
+            saveAllData();
+        }
+    }
+
+    function updatePlayerOrder(charId, newOrder) {
+        const camp = campaigns.find(c => c.id === currentCampaignId);
+        const char = camp.characters.find(c => c.id === charId);
+        if (char) {
+            char.playOrder = parseInt(newOrder) || 1;
+            saveAllData();
+        }
+    }
+
+    // --- TAB 4: NPCS ENCOUNTERED (AUTO/AI DATA INTEGRATION) ---
+    function renderNpcs() {
+        const camp = campaigns.find(c => c.id === currentCampaignId);
+        const container = document.getElementById('npc-list-container');
+        container.innerHTML = '';
+
+        if (!camp.npcs || camp.npcs.length === 0) {
+            container.innerHTML = '<p style="color:var(--text-muted);">No NPCs logged yet. As the game progresses, AI interactions will appear here automatically.</p>';
+            return;
+        }
+
+        camp.npcs.forEach(npc => {
+            const dialogueHtml = (npc.logs || []).map(l => `<div style="margin-bottom:4px;">💬 <em>"${l.dialogue}"</em> - <small>${l.time}</small></div>`).join('');
+            container.innerHTML += `
+                <div class="npc-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <h3 style="color:var(--accent-pink-dark);">${npc.name}</h3>
+                        <span style="background:var(--accent-yellow); padding:2px 8px; border-radius:4px; font-size:0.8rem; font-weight:bold;">${npc.role || 'NPC'}</span>
+                    </div>
+                    <p style="font-size:0.9rem; margin-top:5px;"><strong>Description:</strong> ${npc.description}</p>
+                    <div class="npc-dialogue-box">
+                        <strong>Game History & Dialogue Log:</strong>
+                        <div style="margin-top:6px;">${dialogueHtml || '<em>No conversation history yet.</em>'}</div>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    function promptAddNpc() {
+        const name = prompt("Enter NPC Name:");
+        if (!name) return;
+        const desc = prompt("Enter NPC Description / Location:");
+        addNpcToCampaign({ name: name, role: 'Ally/Merchant', description: desc || 'Met during exploration.', logs: [] });
+    }
+
+    function addNpcToCampaign(npcData) {
+        const camp = campaigns.find(c => c.id === currentCampaignId);
+        if (camp) {
+            camp.npcs.push(npcData);
+            saveAllData();
+            renderNpcs();
+        }
+    }
+
+    function simulateAINpcInput() {
+        const camp = campaigns.find(c => c.id === currentCampaignId);
+        if (!camp) return;
+
+        if (camp.npcs.length === 0) {
+            camp.npcs.push({
+                name: "Elara the Herbalist",
+                role: "Town Alchemist",
+                description: "An elusive elf potion master residing at the edge of the Woods.",
+                logs: []
+            });
+        }
+
+        const targetNpc = camp.npcs[0];
+        targetNpc.logs.push({
+            dialogue: "If you seek the lost relic, beware the goblins in the Northern Caverns!",
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        });
+
+        saveAllData();
+        renderNpcs();
+        alert(`🤖 Simulated Python/AI event received for NPC: ${targetNpc.name}`);
+    }
+
+    // --- TAB 5: ENEMIES & COMBAT LOGS (AUTO/AI DATA INTEGRATION) ---
+    function renderEnemies() {
+        const camp = campaigns.find(c => c.id === currentCampaignId);
+        const container = document.getElementById('enemy-list-container');
+        container.innerHTML = '';
+
+        if (!camp.enemies || camp.enemies.length === 0) {
+            container.innerHTML = '<p style="color:var(--text-muted);">No combat encounters logged yet.</p>';
+            return;
+        }
+
+        camp.enemies.forEach(enc => {
+            const actionsHtml = (enc.combatLogs || []).map(a => `<div class="battle-log-entry">⚔️ <strong>${a.actor}</strong> ${a.action} (<strong>${a.result}</strong>)</div>`).join('');
+            container.innerHTML += `
+                <div class="enemy-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <h3 style="color:var(--accent-pink-dark);">${enc.enemyName}</h3>
+                        <span style="background:var(--accent-pink); color:white; padding:2px 8px; border-radius:4px; font-size:0.8rem; font-weight:bold;">Status: ${enc.status}</span>
+                    </div>
+                    <p style="font-size:0.85rem; color:var(--text-muted); margin-top:4px;">Threat Level / Details: ${enc.details}</p>
+                    <div class="battle-action-log">
+                        <strong>Turn-by-Turn Action Breakdown:</strong>
+                        <div style="margin-top:6px;">${actionsHtml || '<em>No attacks registered yet.</em>'}</div>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    function promptAddEnemy() {
+        const name = prompt("Enter Enemy/Monster Name:");
+        if (!name) return;
+        const details = prompt("Enter Enemy Stats/Details (e.g., 3 Goblin Raiders, AC 12, HP 15):");
+        
+        const camp = campaigns.find(c => c.id === currentCampaignId);
+        if (camp) {
+            camp.enemies.push({
+                enemyName: name,
+                status: 'Active Combat',
+                details: details || 'Encountered in dungeon.',
+                combatLogs: []
+            });
+            saveAllData();
+            renderEnemies();
+        }
+    }
+
+    function simulateAICombatLog() {
+        const camp = campaigns.find(c => c.id === currentCampaignId);
+        if (!camp) return;
+
+        if (camp.enemies.length === 0) {
+            camp.enemies.push({
+                enemyName: "Goblin Warlord",
+                status: "Engaged",
+                details: "Leader of the raid party. High AC, wields Scimitar.",
+                combatLogs: []
+            });
+        }
+
+        const enemy = camp.enemies[0];
+        const playerChar = camp.characters.length > 0 ? camp.characters[0].name : "Hero";
+
+        enemy.combatLogs.push({
+            actor: playerChar,
+            action: `cast Magic Missile against ${enemy.enemyName}`,
+            result: "Dealt 11 Force Damage!"
+        });
+
+        saveAllData();
+        renderEnemies();
+        alert(`⚔️ Simulated AI Turn logged: ${playerChar} attacked ${enemy.enemyName}`);
+    }
+
+    // AUTOMATIC AI LETHAL HIT (AUTOMATICALLY ENTERS DEATH SAVES MODE)
+    function simulateAILethalHit() {
+        const camp = campaigns.find(c => c.id === currentCampaignId);
+        if (!camp || camp.characters.length === 0) {
+            return alert("Please create at least 1 character in the roster first!");
+        }
+
+        const targetChar = camp.characters[0];
+        targetChar.hpCurrent = 0; // Knock down HP to 0
+
+        if (!camp.enemies || camp.enemies.length === 0) {
+            camp.enemies.push({
+                enemyName: "Red Dragon",
+                status: "Raging",
+                details: "Lethal enemy attack executed.",
+                combatLogs: []
+            });
+        }
+
+        camp.enemies[0].combatLogs.push({
+            actor: camp.enemies[0].enemyName,
+            action: `landed a critical strike on ${targetChar.name}`,
+            result: `Dealt ${targetChar.hpMax + 5} Damage! ${targetChar.name} knocked UNCONSCIOUS!`
+        });
+
+        saveAllData();
+        renderCharacterRoster();
+        renderEnemies();
+
+        // Automatically open character sheet in Death Saves Mode
+        openCharacterSheet(targetChar.id);
+        alert(`⚠️ AI Event Triggered: ${targetChar.name} took a lethal hit, HP reduced to 0, entering Death Saves!`);
+    }
+
+    // --- DETAILED CHARACTER SHEET BUILDER ---
+    function openCharacterSheet(charId) {
+        currentCharacterId = charId;
+        const camp = campaigns.find(c => c.id === currentCampaignId);
+        const char = camp.characters.find(c => c.id === charId);
+
+        document.getElementById('char-name').value = char.name;
+        document.getElementById('char-class').value = char.class;
+        document.getElementById('char-level').value = char.level;
+        document.getElementById('char-race').value = char.race;
+        document.getElementById('char-bg').value = char.bg || '';
+
+        document.getElementById('score-str').value = char.scores.str;
+        document.getElementById('score-dex').value = char.scores.dex;
+        document.getElementById('score-con').value = char.scores.con;
+        document.getElementById('score-int').value = char.scores.int;
+        document.getElementById('score-wis').value = char.scores.wis;
+        document.getElementById('score-cha').value = char.scores.cha;
+
+        document.getElementById('hp-current').value = char.hpCurrent;
+        preparedSpells = char.preparedSpells || [];
+        skillProficiencies = char.skillProfs || {};
+        customSkillStats = char.customSkillStats || {};
+
+        updateSheet();
+        showView('view-sheet');
+    }
+
+    function saveActiveCharacterSheet() {
+        const camp = campaigns.find(c => c.id === currentCampaignId);
+        const char = camp.characters.find(c => c.id === currentCharacterId);
+
+        if (char) {
+            char.name = document.getElementById('char-name').value;
+            char.class = document.getElementById('char-class').value;
+            char.level = parseInt(document.getElementById('char-level').value) || 1;
+            char.race = document.getElementById('char-race').value;
+            char.bg = document.getElementById('char-bg').value;
+
+            char.scores = {
+                str: parseInt(document.getElementById('score-str').value) || 0,
+                dex: parseInt(document.getElementById('score-dex').value) || 0,
+                con: parseInt(document.getElementById('score-con').value) || 0,
+                int: parseInt(document.getElementById('score-int').value) || 0,
+                wis: parseInt(document.getElementById('score-wis').value) || 0,
+                cha: parseInt(document.getElementById('score-cha').value) || 0
+            };
+
+            char.hpCurrent = parseInt(document.getElementById('hp-current').value) || 0;
+            char.hpMax = parseInt(document.getElementById('val-hp-max').innerText) || 10;
+            char.preparedSpells = preparedSpells;
+            char.skillProfs = skillProficiencies;
+            char.customSkillStats = customSkillStats;
+
+            saveAllData();
+            alert("Character saved!");
+            showCampaignView();
+        }
+    }
+
+    function showCampaignView() {
+        renderCharacterRoster();
+        renderPlayerSelection();
+        renderNpcs();
+        renderEnemies();
+        showView('view-campaign');
+    }
+
+    // --- CUSTOM STAT BRACKETS CALCULATION ---
+    // 0-5 -> -1 | 6-9 -> +0 | 10-11 -> +1 | 12-13 -> +2 | 14+ -> +3
+    function calcMod(score) {
+        if (score < 6) return -1;
+        if (score < 10) return 0;
+        if (score < 12) return 1;
+        if (score < 14) return 2;
+        return 3;
+    }
+
+    function formatMod(mod) { return mod >= 0 ? `+${mod}` : `${mod}`; }
+    function getProficiencyBonus(level) { return Math.ceil(1 + (level / 4)); }
+
+    function updateSheet() {
+        const cls = document.getElementById('char-class').value;
+        const race = document.getElementById('char-race').value;
+        const level = parseInt(document.getElementById('char-level').value) || 1;
+
+        const str = parseInt(document.getElementById('score-str').value) || 0;
+        const dex = parseInt(document.getElementById('score-dex').value) || 0;
+        const con = parseInt(document.getElementById('score-con').value) || 0;
+        const int = parseInt(document.getElementById('score-int').value) || 0;
+        const wis = parseInt(document.getElementById('score-wis').value) || 0;
+        const cha = parseInt(document.getElementById('score-cha').value) || 0;
+
+        const scores = { str, dex, con, int, wis, cha };
+        const mods = { str: calcMod(str), dex: calcMod(dex), con: calcMod(con), int: calcMod(int), wis: calcMod(wis), cha: calcMod(cha) };
+
+        document.getElementById('mod-str').innerText = formatMod(mods.str);
+        document.getElementById('mod-dex').innerText = formatMod(mods.dex);
+        document.getElementById('mod-con').innerText = formatMod(mods.con);
+        document.getElementById('mod-int').innerText = formatMod(mods.int);
+        document.getElementById('mod-wis').innerText = formatMod(mods.wis);
+        document.getElementById('mod-cha').innerText = formatMod(mods.cha);
+
+        const pb = getProficiencyBonus(level);
+        document.getElementById('val-pb').innerText = formatMod(pb);
+        document.getElementById('val-init').innerText = formatMod(mods.dex);
+
+        const cData = classData[cls];
+        document.getElementById('val-speed').innerText = race === 'Wood Elf' ? '35 ft' : '30 ft';
+
+        let ac = 10 + mods.dex;
+        if (cls === 'Barbarian') ac += mods.con;
+        if (cls === 'Monk') ac += mods.wis;
+        document.getElementById('val-ac').innerText = ac;
+
+        let maxHp = cData.hpBase + mods.con + ((level - 1) * (Math.floor(cData.hpBase / 2) + 1 + mods.con));
+        if (race === 'Dwarf') maxHp += level;
+        document.getElementById('val-hp-max').innerText = Math.max(1, maxHp);
+        document.getElementById('val-hd').innerText = `${level}d${cData.hd}`;
+
+        renderSkills(scores, pb);
+        renderClassAttacks(cls, mods, pb);
+        document.getElementById('class-spell-name').innerText = cls;
+        updateSpellSlotsData(cls, level);
+        renderSpellSlots();
+        renderSpellPicker(cls);
+        renderPreparedSpells();
+
+        checkHP();
+    }
+
+    // Dynamic SRD Skills Rendering with Custom Stat Selection and Capped (+3) Bonus
+    function renderSkills(scores, pb) {
+        const container = document.getElementById('skills-list');
+        container.innerHTML = '';
+
+        const allStatsZero = (scores.str === 0 && scores.dex === 0 && scores.con === 0 && scores.int === 0 && scores.wis === 0 && scores.cha === 0);
+
+        srdSkills.forEach(sk => {
+            const isProficient = !!skillProficiencies[sk.name];
+            const currentStat = customSkillStats[sk.name] || sk.stat;
+            const statValue = scores[currentStat] !== undefined ? scores[currentStat] : 0;
+            
+            const baseMod = calcMod(statValue);
+            const effectiveProfBonus = (allStatsZero || statValue === 0 || !isProficient) ? 0 : pb;
+
+            let rawTotal = baseMod + effectiveProfBonus;
+            const cappedTotal = Math.min(rawTotal, 3);
+
+            const statOptions = ['str', 'dex', 'con', 'int', 'wis', 'cha'].map(st => 
+                `<option value="${st}" ${st === currentStat ? 'selected' : ''}>${st.toUpperCase()}</option>`
+            ).join('');
+
+            container.innerHTML += `
+                <div class="skill-row">
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <input type="checkbox" ${isProficient ? 'checked' : ''} onchange="toggleSkillProficiency('${sk.name}')">
+                        <span><strong>${sk.name}</strong></span>
+                        <select class="btn-small" style="padding:1px 4px; font-size:0.75rem;" onchange="changeSkillStat('${sk.name}', this.value)">
+                            ${statOptions}
+                        </select>
+                    </div>
+                    <span class="skill-mod-badge">${formatMod(cappedTotal)}</span>
+                </div>
+            `;
+        });
+    }
+
+    function changeSkillStat(skillName, newStat) {
+        customSkillStats[skillName] = newStat;
+        updateSheet();
+    }
+
+    function toggleSkillProficiency(skillName) {
+        skillProficiencies[skillName] = !skillProficiencies[skillName];
+        updateSheet();
+    }
+
+    function renderClassAttacks(cls, mods, pb) {
+        const container = document.getElementById('attacks-list');
+        container.innerHTML = '';
+        const attacks = classAttacks[cls] || [];
+
+        attacks.forEach(atk => {
+            const atkMod = Math.min(mods[atk.stat] + pb, 3);
+            container.innerHTML += `
+                <div class="attack-card">
+                    <div class="attack-info">
+                        <div class="name">${atk.name}</div>
+                        <div class="type">${atk.type}</div>
+                    </div>
+                    <div>
+                        <span class="attack-tag">Hit: ${formatMod(atkMod)}</span>
+                        <span class="attack-tag" style="background: var(--bg-card-alt);">${atk.damage}</span>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    function updateSpellSlotsData(cls, level) {
+        const cData = classData[cls];
+        if (!cData.spellcaster) {
+            spellSlotsState = { level1: { total: 0, expended: 0 }, level2: { total: 0, expended: 0 }, level3: { total: 0, expended: 0 } };
+            return;
+        }
+
+        let l1 = 0, l2 = 0, l3 = 0;
+        if (level === 1) { l1 = 2; }
+        else if (level === 2) { l1 = 3; }
+        else if (level >= 3 && level < 5) { l1 = 4; l2 = 2; }
+        else if (level >= 5) { l1 = 4; l2 = 3; l3 = 2; }
+
+        spellSlotsState.level1.total = l1;
+        spellSlotsState.level2.total = l2;
+        spellSlotsState.level3.total = l3;
+    }
+
+    function renderSpellSlots() {
+        const container = document.getElementById('slots-container');
+        container.innerHTML = '';
+        let hasSlots = false;
+
+        [1, 2, 3].forEach(lvl => {
+            const slotData = spellSlotsState[`level${lvl}`];
+            if (slotData.total > 0) {
+                hasSlots = true;
+                let circlesHtml = '';
+                for (let i = 0; i < slotData.total; i++) {
+                    const isExpended = i < slotData.expended;
+                    circlesHtml += `<div class="spell-circle ${isExpended ? 'expended' : ''}" onclick="toggleSlotCircle(${lvl}, ${i})"></div>`;
+                }
+
+                container.innerHTML += `
+                    <div class="slot-level-row">
+                        <span>Level ${lvl} Slots (${slotData.total - slotData.expended}/${slotData.total}):</span>
+                        <div class="circles-group">${circlesHtml}</div>
+                    </div>
+                `;
+            }
+        });
+
+        if (!hasSlots) {
+            container.innerHTML = `<span style="font-size:0.85rem; color:var(--text-muted);">Non-spellcasting class or level too low.</span>`;
+        }
+    }
+
+    function toggleSlotCircle(level, index) {
+        const slotData = spellSlotsState[`level${level}`];
+        if (index < slotData.expended) slotData.expended--;
+        else slotData.expended++;
+        renderSpellSlots();
+    }
+
+    function renderSpellPicker(cls) {
+        const container = document.getElementById('spell-picker-list');
+        container.innerHTML = '';
+        const spells = classSpells[cls] || [];
+
+        if (spells.length === 0) {
+            container.innerHTML = `<span style="font-size:0.85rem; color:var(--text-muted);">No class spell list available.</span>`;
+            return;
+        }
+
+        spells.forEach(sp => {
+            const isChecked = preparedSpells.some(p => p.name === sp.name);
+            container.innerHTML += `
+                <div class="spell-option">
+                    <label>
+                        <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="togglePrepareSpell('${sp.name}', '${cls}')">
+                        <strong>${sp.name}</strong> (${sp.level === 0 ? 'Cantrip' : 'Lvl ' + sp.level})
+                    </label>
+                    <span style="font-size: 0.75rem; color: var(--text-muted);">${sp.damage}</span>
+                </div>
+            `;
+        });
+    }
+
+    function togglePrepareSpell(spellName, cls) {
+        const spells = classSpells[cls] || [];
+        const spellObj = spells.find(s => s.name === spellName);
+
+        const index = preparedSpells.findIndex(p => p.name === spellName);
+        if (index > -1) preparedSpells.splice(index, 1);
+        else if (spellObj) preparedSpells.push(spellObj);
+        renderPreparedSpells();
+    }
+
+    function renderPreparedSpells() {
+        const container = document.getElementById('prepared-spells-list');
+        container.innerHTML = '';
+
+        if (preparedSpells.length === 0) {
+            container.innerHTML = `<span style="font-size:0.85rem; color:var(--text-muted);">No spells prepared.</span>`;
+            return;
+        }
+
+        preparedSpells.forEach(sp => {
+            container.innerHTML += `
+                <div class="prepared-item">
+                    <div>
+                        <strong>${sp.name}</strong> <small>(${sp.level === 0 ? 'Cantrip' : 'Lvl ' + sp.level})</small>
+                        <div style="font-size:0.75rem; color:var(--text-muted);">${sp.desc} - <strong>${sp.damage}</strong></div>
+                    </div>
+                    <button class="btn btn-small" onclick="castSpell('${sp.name}', ${sp.level})">✨ Cast</button>
+                </div>
+            `;
+        });
+    }
+
+    function castSpell(spellName, level) {
+        if (level === 0) return alert(`Cast ${spellName} (Cantrip)!`);
+        const slotData = spellSlotsState[`level${level}`];
+        if (slotData && slotData.expended < slotData.total) {
+            slotData.expended++;
+            renderSpellSlots();
+            alert(`Cast ${spellName}! Expended 1 Level ${level} spell slot.`);
+        } else {
+            alert(`No Level ${level} spell slots remaining!`);
+        }
+    }
+
+    function restLong() {
+        Object.keys(spellSlotsState).forEach(lvl => spellSlotsState[lvl].expended = 0);
+        renderSpellSlots();
+        const maxHp = document.getElementById('val-hp-max').innerText;
+        document.getElementById('hp-current').value = maxHp;
+        deathSaveSuccesses = 0;
+        deathSaveFailures = 0;
+        checkHP();
+        alert("Long Rest complete! Health and spell slots refilled.");
+    }
+
+    // MANUAL DEATH SAVES TRIGGER
+    function enterDeathSavesManually() {
+        document.getElementById('hp-current').value = 0;
+        checkHP();
+    }
+
+    function checkHP() {
+        const hp = parseInt(document.getElementById('hp-current').value) || 0;
+        const dsContainer = document.getElementById('death-save-container');
+
+        // Automatically trigger death save red screen mode when HP <= 0
+        if (hp <= 0) {
+            document.body.classList.add('dying-mode');
+            dsContainer.style.display = 'block';
+        } else {
+            document.body.classList.remove('dying-mode');
+            dsContainer.style.display = 'none';
+        }
+    }
+
+    function rollDeathSave(passed) {
+        if (passed) deathSaveSuccesses = Math.min(3, deathSaveSuccesses + 1);
+        else deathSaveFailures = Math.min(3, deathSaveFailures + 1);
+
+        document.getElementById('ds-successes').innerText = '🟢'.repeat(deathSaveSuccesses) + '⚪'.repeat(3 - deathSaveSuccesses);
+        document.getElementById('ds-failures').innerText = '🔴'.repeat(deathSaveFailures) + '⚪'.repeat(3 - deathSaveFailures);
+
+        if (deathSaveSuccesses >= 3) alert("Character Stabilized!");
+        else if (deathSaveFailures >= 3) alert("Character Has Died!");
+    }
+
+    window.onload = function() {
+        renderCampaignsList();
+    };
+</script>
+
+<!-- =====================================================================================
+     AI DM MICROCONTROLLER BRIDGE — ADDED ONLY, NOTHING ABOVE THIS LINE WAS TOUCHED.
+
+     Connects this webapp to the AI DnD microcontroller's existing Socket.IO server on
+     http://localhost:5000, in both directions:
+
+     OUTGOING (webapp -> microcontroller), event "character_data_update":
+       Fired ONLY from inside the app's existing onclick / onchange handlers (Save
+       Character, HP field, death save buttons, spell slot circles, cast spell, long
+       rest, prepare-spell checkboxes, skill checkboxes/dropdowns, add/delete character,
+       participation & turn order, campaign notes/mode, add NPC, add enemy). Never on a
+       timer or background loop.
+         { type, campaignId, characterId, payload, ts }
+
+     INCOMING (microcontroller -> webapp), event "campaign_data_update":
+       Handled with the requested 200ms throttle so a burst of rapid messages updates the
+       UI at most 5x/sec instead of on every packet, while still feeling live.
+         { type: 'hp' | 'death_save' | 'spell_slots' | 'prepared_spells' |
+                 'character_full' | 'npc' | 'combat' | 'enemy' | 'notes',
+           campaignId, characterId, payload }
+       campaignId / characterId are optional — if omitted, whatever campaign/character is
+       currently open in the webapp is assumed. Adjust the "case" bodies below if your
+       microcontroller's field names differ from this shape.
+     ===================================================================================== -->
+<script>
+// Loads the socket.io client library WITHOUT assuming internet access: it tries your
+// local microcontroller server first (Flask-SocketIO serves its own copy at this path
+// automatically), and only falls back to the public CDN if that fails. Either way,
+// window.__initAIDMBridge() is only called once "io" actually exists, so there is no
+// "io is not defined" race.
+(function loadSocketIOClient(sources, i) {
+    i = i || 0;
+    if (i >= sources.length) {
+        console.warn('[AI-DM Bridge] Could not load the socket.io client from any source (tried: ' + sources.join(', ') + '). Live sync with the microcontroller is disabled; the rest of the app is unaffected.');
+        return;
+    }
+    const s = document.createElement('script');
+    s.src = sources[i];
+    s.onload = function () {
+        console.log('[AI-DM Bridge] socket.io client loaded from', sources[i]);
+        if (typeof window.__initAIDMBridge === 'function') window.__initAIDMBridge();
+    };
+    s.onerror = function () {
+        console.warn('[AI-DM Bridge] failed to load socket.io client from', sources[i], '- trying next source');
+        loadSocketIOClient(sources, i + 1);
+    };
+    document.head.appendChild(s);
+})([
+    'http://localhost:5000/socket.io/socket.io.js',
+    'https://cdn.socket.io/4.7.5/socket.io.min.js'
+]);
+</script>
+<script>
+// Defined up front, but its body only runs after loadSocketIOClient() above confirms
+// "io" is actually available — so nothing in here can throw a ReferenceError.
+window.__initAIDMBridge = function () {
+    'use strict';
+
+    if (typeof io === 'undefined') {
+        console.warn('[AI-DM Bridge] "io" still undefined after load — aborting init.');
+        return;
+    }
+
+    // ---------------------------------------------------------------- CONNECTION ----
+    const socket = io('http://localhost:5000', {
+        transports: ['websocket', 'polling'],
+        reconnection: true
+    });
+
+    socket.on('connect', () => console.log('[AI-DM Bridge] connected to microcontroller on :5000'));
+    socket.on('disconnect', () => console.log('[AI-DM Bridge] disconnected from microcontroller'));
+    socket.on('connect_error', (err) => console.warn('[AI-DM Bridge] connection error:', err && err.message));
+
+    // ------------------------------------------------------------------ HELPERS ----
+    function getCampaignRef(campaignId) {
+        const id = campaignId || currentCampaignId;
+        return campaigns.find(c => c.id === id) || null;
+    }
+
+    function getCharacterRef(campaignId, characterId) {
+        const camp = getCampaignRef(campaignId);
+        if (!camp) return null;
+        const id = characterId || currentCharacterId;
+        return camp.characters.find(c => c.id === id) || null;
+    }
+
+    // Sends state to the microcontroller. Only ever invoked from inside an existing
+    // click/change handler (via afterCall below) — never from an interval or loop.
+    function sendToMC(type, payload) {
+        try {
+            socket.emit('character_data_update', {
+                type: type,
+                campaignId: currentCampaignId,
+                characterId: currentCharacterId,
+                payload: payload,
+                ts: Date.now()
+            });
+        } catch (e) {
+            console.warn('[AI-DM Bridge] failed to send', type, e);
+        }
+    }
+
+    // Wraps an existing globally-declared function: it still runs exactly as before,
+    // then (still inside the same click/change event, right after) reports the
+    // relevant slice of state to the microcontroller. This is how outgoing sync hooks
+    // into the app's existing buttons/inputs without editing any original code.
+    function afterCall(fnName, reporter) {
+        const original = window[fnName];
+        if (typeof original !== 'function') {
+            console.warn('[AI-DM Bridge] could not hook missing function:', fnName);
+            return;
+        }
+        window[fnName] = function () {
+            const result = original.apply(this, arguments);
+            try { reporter.apply(null, arguments); } catch (e) { console.warn('[AI-DM Bridge] reporter error for', fnName, e); }
+            return result;
+        };
+    }
+
+    // ------------------------------------------------------- OUTGOING: CHARACTER SHEET
+    afterCall('saveActiveCharacterSheet', function () {
+        const char = getCharacterRef();
+        if (!char) return;
+        sendToMC('character_full', {
+            name: char.name, class: char.class, level: char.level, race: char.race, bg: char.bg,
+            scores: char.scores, hpCurrent: char.hpCurrent, hpMax: char.hpMax,
+            preparedSpells: char.preparedSpells, skillProfs: char.skillProfs,
+            customSkillStats: char.customSkillStats, spellSlots: spellSlotsState
+        });
+    });
+
+    // -------------------------------------------------------------------- OUTGOING: HP
+    afterCall('checkHP', function () {
+        const hp = parseInt(document.getElementById('hp-current').value) || 0;
+        sendToMC('hp', { hpCurrent: hp });
+    });
+
+    // ------------------------------------------------------------- OUTGOING: DEATH SAVES
+    afterCall('rollDeathSave', function (passed) {
+        sendToMC('death_save', { passed: passed, successes: deathSaveSuccesses, failures: deathSaveFailures });
+    });
+    afterCall('enterDeathSavesManually', function () {
+        sendToMC('death_save', { successes: deathSaveSuccesses, failures: deathSaveFailures, entered: true });
+    });
+
+    // ------------------------------------------------------------- OUTGOING: SPELL SLOTS
+    afterCall('toggleSlotCircle', function () {
+        sendToMC('spell_slots', { spellSlots: spellSlotsState });
+    });
+    afterCall('castSpell', function (spellName) {
+        sendToMC('spell_slots', { spellSlots: spellSlotsState, lastCast: spellName });
+    });
+    afterCall('restLong', function () {
+        const char = getCharacterRef();
+        sendToMC('rest', { hpCurrent: char ? char.hpCurrent : null, spellSlots: spellSlotsState });
+    });
+
+    // --------------------------------------------------------- OUTGOING: PREPARED SPELLS
+    afterCall('togglePrepareSpell', function () {
+        sendToMC('prepared_spells', { preparedSpells: preparedSpells });
+    });
+
+    // ------------------------------------------------------------------ OUTGOING: SKILLS
+    afterCall('toggleSkillProficiency', function () {
+        sendToMC('skills', { skillProficiencies: skillProficiencies });
+    });
+    afterCall('changeSkillStat', function () {
+        sendToMC('skills', { customSkillStats: customSkillStats });
+    });
+
+    // ------------------------------------------------------------------ OUTGOING: ROSTER
+    afterCall('createNewCharacter', function () {
+        const camp = getCampaignRef();
+        sendToMC('roster', { characters: camp ? camp.characters : [] });
+    });
+    afterCall('deleteCharacter', function () {
+        const camp = getCampaignRef();
+        sendToMC('roster', { characters: camp ? camp.characters : [] });
+    });
+
+    // -------------------------------------------------------- OUTGOING: TURN ORDER/PARTY
+    function reportTurnOrder() {
+        const camp = getCampaignRef();
+        sendToMC('turn_order', {
+            characters: camp ? camp.characters.map(c => ({ id: c.id, name: c.name, participating: c.participating, playOrder: c.playOrder })) : []
+        });
+    }
+    afterCall('togglePlayerParticipation', reportTurnOrder);
+    afterCall('updatePlayerOrder', reportTurnOrder);
+
+    // --------------------------------------------------------- OUTGOING: NOTES / MODE
+    afterCall('saveCampaignNotes', function () {
+        const camp = getCampaignRef();
+        sendToMC('notes', { notes: camp ? camp.notes : '' });
+    });
+    afterCall('saveCampaignMode', function () {
+        const camp = getCampaignRef();
+        sendToMC('campaign_mode', { mode: camp ? camp.mode : '' });
+    });
+
+    // ---------------------------------------------------- OUTGOING: MANUAL NPCS/ENEMIES
+    afterCall('addNpcToCampaign', function (npcData) {
+        sendToMC('npc', npcData);
+    });
+    afterCall('promptAddEnemy', function () {
+        const camp = getCampaignRef();
+        const last = camp && camp.enemies.length ? camp.enemies[camp.enemies.length - 1] : null;
+        if (last) sendToMC('enemy', last);
+    });
+
+    // ============================================================================
+    // INCOMING — throttled to one UI refresh every 200ms (per the spec provided)
+    // ============================================================================
+    let updateTimeout = null;
+    let pendingUpdates = [];
+
+    socket.on('campaign_data_update', (incomingData) => {
+        pendingUpdates.push(incomingData);
+        if (updateTimeout) clearTimeout(updateTimeout);
+        updateTimeout = setTimeout(() => {
+            const batch = pendingUpdates;
+            pendingUpdates = [];
+            batch.forEach(applyIncomingUpdate);
+        }, 200);
+    });
+
+    function applyIncomingUpdate(data) {
+        if (!data || !data.type) return;
+        const camp = getCampaignRef(data.campaignId);
+        if (!camp) { console.warn('[AI-DM Bridge] update for unknown/unset campaign, ignored:', data); return; }
+        const payload = data.payload || {};
+
+        switch (data.type) {
+            case 'hp': {
+                const char = camp.characters.find(c => c.id === (data.characterId || currentCharacterId));
+                if (!char) break;
+                if (typeof payload.hpCurrent === 'number') char.hpCurrent = payload.hpCurrent;
+                if (typeof payload.hpMax === 'number') char.hpMax = payload.hpMax;
+                saveAllData();
+                if (char.id === currentCharacterId) {
+                    document.getElementById('hp-current').value = char.hpCurrent;
+                    checkHP();
+                }
+                renderCharacterRoster();
+                break;
+            }
+            case 'death_save': {
+                const char = camp.characters.find(c => c.id === (data.characterId || currentCharacterId));
+                if (!char) break;
+                char.deathSaveSuccesses = (typeof payload.successes === 'number') ? payload.successes : (char.deathSaveSuccesses || 0);
+                char.deathSaveFailures = (typeof payload.failures === 'number') ? payload.failures : (char.deathSaveFailures || 0);
+                saveAllData();
+                if (char.id === currentCharacterId) {
+                    deathSaveSuccesses = char.deathSaveSuccesses;
+                    deathSaveFailures = char.deathSaveFailures;
+                    document.getElementById('ds-successes').innerText = '🟢'.repeat(deathSaveSuccesses) + '⚪'.repeat(3 - deathSaveSuccesses);
+                    document.getElementById('ds-failures').innerText = '🔴'.repeat(deathSaveFailures) + '⚪'.repeat(3 - deathSaveFailures);
+                }
+                break;
+            }
+            case 'spell_slots': {
+                const char = camp.characters.find(c => c.id === (data.characterId || currentCharacterId));
+                if (!char) break;
+                if (payload.spellSlots) char.spellSlots = payload.spellSlots;
+                saveAllData();
+                if (char.id === currentCharacterId && payload.spellSlots) {
+                    spellSlotsState = payload.spellSlots;
+                    renderSpellSlots();
+                }
+                break;
+            }
+            case 'prepared_spells': {
+                const char = camp.characters.find(c => c.id === (data.characterId || currentCharacterId));
+                if (!char) break;
+                if (payload.preparedSpells) char.preparedSpells = payload.preparedSpells;
+                saveAllData();
+                if (char.id === currentCharacterId && payload.preparedSpells) {
+                    preparedSpells = payload.preparedSpells;
+                    renderPreparedSpells();
+                }
+                break;
+            }
+            case 'character_full': {
+                const char = camp.characters.find(c => c.id === (data.characterId || currentCharacterId));
+                if (!char) break;
+                Object.assign(char, payload);
+                saveAllData();
+                if (char.id === currentCharacterId) {
+                    openCharacterSheet(char.id);
+                } else {
+                    renderCharacterRoster();
+                }
+                break;
+            }
+            case 'npc': {
+                if (!camp.npcs) camp.npcs = [];
+                let npc = camp.npcs.find(n => n.name === payload.name);
+                if (!npc) {
+                    npc = { name: payload.name || 'Unnamed NPC', role: payload.role || 'NPC', description: payload.description || '', logs: [] };
+                    camp.npcs.push(npc);
+                } else {
+                    if (payload.description) npc.description = payload.description;
+                    if (payload.role) npc.role = payload.role;
+                }
+                if (payload.dialogue) {
+                    npc.logs.push({ dialogue: payload.dialogue, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
+                }
+                saveAllData();
+                if (camp.id === currentCampaignId) renderNpcs();
+                break;
+            }
+            case 'combat':
+            case 'enemy': {
+                if (!camp.enemies) camp.enemies = [];
+                let enemy = camp.enemies.find(e => e.enemyName === payload.enemyName);
+                if (!enemy) {
+                    enemy = { enemyName: payload.enemyName || 'Unknown Enemy', status: payload.status || 'Active Combat', details: payload.details || '', combatLogs: [] };
+                    camp.enemies.push(enemy);
+                } else {
+                    if (payload.status) enemy.status = payload.status;
+                    if (payload.details) enemy.details = payload.details;
+                }
+                if (payload.actor && payload.action) {
+                    enemy.combatLogs.push({ actor: payload.actor, action: payload.action, result: payload.result || '' });
+                }
+                saveAllData();
+                if (camp.id === currentCampaignId) renderEnemies();
+
+                // If the microcontroller reports a character was dropped to 0 HP mid-combat,
+                // reuse the app's existing lethal-hit UX (auto death-saves screen).
+                if (payload.characterId && typeof payload.hpCurrent === 'number' && payload.hpCurrent <= 0) {
+                    const dyingChar = camp.characters.find(c => c.id === payload.characterId);
+                    if (dyingChar) {
+                        dyingChar.hpCurrent = 0;
+                        saveAllData();
+                        renderCharacterRoster();
+                        if (camp.id === currentCampaignId) openCharacterSheet(dyingChar.id);
+                    }
+                }
+                break;
+            }
+            case 'notes': {
+                if (typeof payload.notes === 'string') camp.notes = payload.notes;
+                saveAllData();
+                if (camp.id === currentCampaignId) document.getElementById('campaign-notes').value = camp.notes || '';
+                break;
+            }
+            default:
+                console.warn('[AI-DM Bridge] unknown incoming update type:', data.type, data);
+        }
+    }
+}; // end window.__initAIDMBridge
+</script>
+</body>
+</html>

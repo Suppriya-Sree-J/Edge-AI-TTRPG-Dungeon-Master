@@ -1,0 +1,16 @@
+[Unit]
+Description=Edge DM auto-start
+After=network.target sound.target
+
+[Service]
+Type=simple
+User=arduino
+WorkingDirectory=/home/arduino/dm_engine
+ExecStart=/home/arduino/dm_engine/start.sh
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/home/arduino/dm_engine/service.log
+StandardError=append:/home/arduino/dm_engine/service.log
+
+[Install]
+WantedBy=multi-user.target
