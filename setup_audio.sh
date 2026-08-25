@@ -29,7 +29,7 @@ fi
 echo ""
 echo "=== Sanity checks ==="
 python3 -c "import vosk; print('vosk: OK')"
-espeak-ng "Setup complete" && echo "espeak-ng: OK (you should have heard that, if a speaker is connected)"
+which ~/.local/bin/piper > /dev/null && echo "piper: OK" || echo "piper: NOT FOUND — check pip install piper-tts succeeded"
 
 echo ""
 echo "=== Done. Next steps: ==="
