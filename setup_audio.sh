@@ -34,5 +34,5 @@ which ~/.local/bin/piper > /dev/null && echo "piper: OK" || echo "piper: NOT FOU
 echo ""
 echo "=== Done. Next steps: ==="
 echo "1. Plug in hardware, then run:  lsusb && arecord -l && aplay -l"
-echo "2. Fill in MIC_DEVICE and PLAYER_ID in voice_loop.py"
+echo "2. Fill in MIC_DEVICE in voice_loop.py, and confirm PIPER_MODEL matches your downloaded filename"
 echo "3. Run:  chmod +x start.sh && ./start.sh"
