@@ -5,10 +5,17 @@ set -e
 
 echo "=== Installing system packages ==="
 sudo apt-get update
-sudo apt-get install -y espeak-ng libportaudio2 unzip
+sudo apt-get install -y libportaudio2 unzip
 
 echo "=== Installing Python packages ==="
-pip install vosk requests --break-system-packages
+pip install vosk requests piper-tts --break-system-packages
+
+echo "=== Downloading Piper voice model ==="
+cd ~/dm_engine
+if [ ! -f "en_US-amy-medium.onnx" ]; then
+    wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx
+    wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/medium/en_US-amy-medium.onnx.json
+fi
 
 echo "=== Downloading offline speech recognition model ==="
 cd ~/dm_engine
