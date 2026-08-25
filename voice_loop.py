@@ -2,7 +2,7 @@ Voice loop for Edge DM. Runs entirely on the UNO Q — no laptop involved.
 Turn-based, no button needed: after the DM speaks, the party gets a think
 window, then it prompts and listens for the party's move. Transcribes
 offline (vosk), sends it to the game API, speaks the reply offline
-(espeak-ng). No internet used anywhere in this loop.
+(piper). No internet used anywhere in this loop.
 
 SETUP — fill these in once your hardware is plugged in:
 1. Run `arecord -l` and put your mic's card/device numbers in MIC_DEVICE below.
@@ -61,15 +61,15 @@ def transcribe(model) -> str:
     return " ".join(t for t in text_parts if t).strip()
 
 
+PIPER_MODEL = "en_US-amy-medium.onnx"  # TODO: confirm this matches the filename on your board
+
 def speak(text: str):
-    """Offline text-to-speech via espeak-ng, routed explicitly to the USB
-    sound card (card 1) rather than relying on the ALSA default — the board
-    also has its own built-in codec (card 0) which the default might pick
-    instead, resulting in silent playback with no error."""
+    """Offline text-to-speech via Piper, routed to the USB sound card."""
     if not text:
         return
     subprocess.run(
-        f'espeak-ng -s 150 --stdout "{text}" | aplay -D plughw:1,0',
+        f'echo "{text}" | ~/.local/bin/piper --model {PIPER_MODEL} '
+        f'--output_file - 2>/dev/null | aplay -D plughw:1,0',
         shell=True
     )
 
