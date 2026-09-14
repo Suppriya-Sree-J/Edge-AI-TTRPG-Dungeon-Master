@@ -21,10 +21,20 @@ from flask_socketio import SocketIO, emit
 
 from engine import EdgeDMEngine
 
+try:
+    import dm_cues
+except Exception as _cue_exc:
+    print(f"[app] cue layer unavailable ({_cue_exc}) - running without it")
+    dm_cues = None
+
 # --------------------------------------------------------------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OLLAMA_URL = "http://127.0.0.1:11434/api/generate"
 MODEL = "llama3.2:1b"
+
+# (x, y, w, h) in camera pixels - the box the die is thrown into.
+# Get these from `python3 dice_reader.py --test` with the tray set up.
+TRAY_ROI = (120, 80, 400, 400)
 
 app = Flask(__name__, static_folder=BASE_DIR)
 CORS(app)
@@ -35,6 +45,12 @@ engine = EdgeDMEngine(
     ledger_path=os.path.join(BASE_DIR, "ledger.json"),
     characters_path=os.path.join(BASE_DIR, "characters.json"),
 )
+
+# Connects to the MCU, provides "dice_landed", puts the strip in a known
+# (off) state. voice_loop.py provides "button_event" from its own process -
+# different methods, so the router handles both without conflict.
+if dm_cues is not None:
+    dm_cues.start(tray_roi=TRAY_ROI)
 
 # The web app tags every message with a campaignId. We remember the last one
 # we saw so outgoing HP updates are addressed to the right campaign.
@@ -115,6 +131,15 @@ def update_positions():
     return jsonify({"ok": True})
 
 
+@app.route("/api/dice_state", methods=["GET"])
+def dice_state():
+    """Whether a physical roll is waiting to be consumed. Handy for
+    testing the tray without playing a whole turn."""
+    if dm_cues is None:
+        return jsonify({"available": False})
+    return jsonify({"available": dm_cues.has_physical_roll()})
+
+
 # ----------------------------------------------------- 4. GAMEPLAY ------
 @app.route("/api/player_action", methods=["POST"])
 def handle_player_action():
@@ -128,9 +153,14 @@ def handle_player_action():
     if not action_text:
         return jsonify({"error": "action_text required"}), 400
 
-    prompt, active_lora, combat_result, session_ended = engine.process_player_action(
-        player_id, action_text
-    )
+    try:
+        prompt, active_lora, combat_result, session_ended = \
+            engine.process_player_action(player_id, action_text)
+    except Exception as exc:
+        print(f"[app] action failed: {exc}")
+        if dm_cues is not None:
+            dm_cues.sfx("error")
+        return jsonify({"error": str(exc)}), 500
 
     narration = engine.generate_narration(prompt, model=MODEL, max_tokens=110)
     engine.log_ai_response(narration)
