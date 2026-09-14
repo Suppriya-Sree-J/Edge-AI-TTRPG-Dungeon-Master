@@ -8,6 +8,24 @@ import random
 import urllib.request
 from fastembed import TextEmbedding
 
+# --- reflex layer (buzzer, combat light, physical dice) -------------------
+# Wrapped: if the MCU or camera isn't there, the game must still run.
+try:
+    import dm_cues
+    from dm_cues import sfx, light_on, light_off
+except Exception as _cue_exc:
+    print(f"[engine] cue layer unavailable ({_cue_exc}) - running without it")
+    dm_cues = None
+
+    def sfx(name):
+        pass
+
+    def light_on():
+        pass
+
+    def light_off():
+        pass
+
 INTENT_MATRIX = {
     # 1. Combat & Math (Deterministic 5e Rules)
     "trigger_combat_math": [
@@ -21,6 +39,15 @@ INTENT_MATRIX = {
         "horde", "swarm", "mobs", "army", "pack", "dozens", "crowd",
         "hundreds", "group of", "mob of", "cluster", "mass", "legion",
         "multitude", "squad", "troop", "gang", "infestation"
+    ],
+
+    # 3. Hazards & Environment
+    # (this branch existed in build_master_prompt but had no triggers,
+    #  so it could never actually fire)
+    "trigger_trap_generation": [
+        "trap", "tripwire", "pressure plate", "pit", "snare", "dart",
+        "spikes", "alarm", "glyph", "ward", "trapped", "disarm",
+        "detect traps", "check for traps", "search for traps"
     ],
 
     # 4. Monument & Mystery (Interactive Set Pieces)
@@ -137,6 +164,14 @@ def roll_dice(expression: str) -> int:
     num_dice = int(match.group(1)) if match.group(1) else 1
     die_size = int(match.group(2))
     modifier = int(match.group(3)) if match.group(3) else 0
+    # A single d20 is the roll the player physically throws into the tray.
+    # Everything else (damage dice, 2d6, flat modifiers) stays in software.
+    if num_dice == 1 and die_size == 20 and dm_cues is not None:
+        physical = dm_cues.take_physical_roll()
+        if physical is not None:
+            print(f"[dice] using the player's real roll: {physical}")
+            return physical + modifier
+
     return sum(random.randint(1, die_size) for _ in range(num_dice)) + modifier
 
 
@@ -549,6 +584,22 @@ DM:"""
         self.advance_turn()
         return result
 
+    def enter_combat(self):
+        """First combat action of a fight: sting plays, strip comes on."""
+        if self.ledger.get("in_combat"):
+            return
+        self.ledger["in_combat"] = True
+        sfx("combat_start")
+        light_on()
+
+    def exit_combat(self, won: bool = True):
+        """Fight over: strip goes off."""
+        if not self.ledger.get("in_combat"):
+            return
+        self.ledger["in_combat"] = False
+        sfx("combat_win" if won else "combat_end")
+        light_off()
+
     def build_master_prompt(self, player_id: str, action_text: str, intent_name: str, trigger_word: str) -> tuple[str, str, dict | None, bool]:
         """The Core Brain. Stitches together sheets, rules, memory, and picks the LoRA."""
         recent_history = self.get_ai_context()
@@ -573,6 +624,7 @@ DM:"""
         # 1. Combat & Math — damage is rolled and applied HERE in Python.
         # The LLM only narrates the already-computed outcome; it never does the math.
         if intent_name == "trigger_combat_math":
+            self.enter_combat()
             dynamic_context = self.get_vault_context(action_text)
             active_lora = "/models/loras/combat.safetensors"
             sheet_context = slim_sheet_context
@@ -607,12 +659,17 @@ DM:"""
                     "The attack cannot reach — narrate that the target is too far away and "
                     "no damage is dealt. Do not roll or state any damage number."
                 )
+                sfx("attack_miss")
             else:
                 result = self.resolve_attack_damage(
                     target_id, dynamic_context,
                     fallback_dice=spell_dice or "1d6"
                 )
                 combat_result = result
+                if result["target_found"]:
+                    sfx("attack_hit")
+                    if result["defeated"]:
+                        self.exit_combat(won=True)
                 if range_check is not None:
                     combat_result["in_range"] = True
                     combat_result["distance_ft"] = range_check["distance_ft"]
@@ -638,6 +695,7 @@ DM:"""
 
         # 2. Horde & Swarm Mechanics — same deterministic approach, mob-scale fallback dice.
         elif intent_name == "trigger_horde_rules":
+            self.enter_combat()
             dynamic_context = self.get_vault_context(action_text)
             active_lora = "/models/loras/combat.safetensors"
             sheet_context = slim_sheet_context
@@ -664,12 +722,14 @@ DM:"""
 
         # 3. Hazards & Environment
         elif intent_name == "trigger_trap_generation":
+            sfx("trap_found")
             dynamic_context = self.get_vault_context(action_text)
             active_lora = "/models/loras/hazards.safetensors"
             system_instruction = "A trap, puzzle, or environmental hazard is involved. Use the rulebooks to resolve the mechanism and its effects."
 
         # 4. Monument & Mystery
         elif intent_name == "trigger_monument_discovery":
+            sfx("treasure_found")
             dynamic_context = self.get_vault_context(action_text)
             active_lora = "/models/loras/worldbuilding.safetensors"
             system_instruction = "The player has come across something, provide a monument and mystery. Provide deep lore and visual descriptions."
@@ -682,6 +742,7 @@ DM:"""
 
         # 6. Loot & Discovery
         elif intent_name == "trigger_loot_tables":
+            sfx("treasure_found")
             dynamic_context = self.get_vault_context(action_text)
             active_lora = "/models/loras/loot.safetensors"
             system_instruction = "The player is searching for loot or rewards. Determine exactly what they find based on the rulebooks."
@@ -723,6 +784,8 @@ DM:"""
 
         # 12. Ending the Session — wraps up the story instead of running forever.
         elif intent_name == "trigger_end_session":
+            self.exit_combat(won=True)
+            light_off()
             active_lora = "/models/loras/base.safetensors"
             session_ended = True
             self.ledger["session_ended"] = True
