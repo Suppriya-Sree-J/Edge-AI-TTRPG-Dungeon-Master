@@ -10,13 +10,17 @@ sleep 15
 cd ~/dm_engine
 
 echo "Starting Flask backend..."
-python3 app.py > flask.log 2>&1 &
+python3 -u app.py > flask.log 2>&1 &
 FLASK_PID=$!
 
 echo "Waiting for the model to warm up..."
 until grep -q "LLM warm and ready" flask.log 2>/dev/null; do
     sleep 1
 done
+
+echo "Starting board tracker..."
+python3 -u aruco_tracker.py > aruco.log 2>&1 &
+ARUCO_PID=$!
 
 echo "Backend ready. Starting voice loop..."
 python3 voice_loop.py
