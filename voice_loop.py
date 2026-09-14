@@ -1,3 +1,4 @@
+"""
 Voice loop for Edge DM. Runs entirely on the UNO Q — no laptop involved.
 Turn-based, no button needed: after the DM speaks, the party gets a think
 window, then it prompts and listens for the party's move. Transcribes
